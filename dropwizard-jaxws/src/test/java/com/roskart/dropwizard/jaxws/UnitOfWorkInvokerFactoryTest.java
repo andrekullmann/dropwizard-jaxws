@@ -20,44 +20,11 @@ import static org.mockito.Mockito.*;
 
 public class UnitOfWorkInvokerFactoryTest {
 
-    class FooService {
-        public String foo() {
-            return "foo return";
-        }
-        @UnitOfWork
-        public String unitOfWork(boolean throwException) {
-            if (throwException)
-                throw new RuntimeException("Uh oh");
-            else
-                return "unitOfWork return";
-        }
-
-    }
-
-    public class FooInvoker implements Invoker {
-        @Override
-        public Object invoke(Exchange exchange, Object o) {
-            return fooService.foo();
-        }
-    }
-
-    public class UnitOfWorkInvoker implements Invoker {
-        private boolean doThrow = false;
-        public UnitOfWorkInvoker(boolean doThrow) {
-            this.doThrow = doThrow;
-        }
-        @Override
-        public Object invoke(Exchange exchange, Object o) {
-            return fooService.unitOfWork(doThrow);
-        }
-    }
-
     UnitOfWorkInvokerFactory invokerBuilder;
     FooService fooService;
     SessionFactory sessionFactory;
     Session session;
     Transaction transaction;
-
     // CXF Exchange contains message exchange and is used by Invoker to obtain invoked method name
     Exchange exchange;
 
@@ -88,8 +55,7 @@ public class UnitOfWorkInvokerFactoryTest {
             OperationInfo oi = exchange.getBindingOperationInfo().getOperationInfo();
             when(oi.getProperty(Method.class.getName()))
                     .thenReturn(FooService.class.getMethod(methodName, parameterTypes));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             fail("setTargetMethod failed: " + e.getClass().getName() + ": " + e.getMessage());
         }
     }
@@ -102,9 +68,9 @@ public class UnitOfWorkInvokerFactoryTest {
         Object result = invoker.invoke(exchange, null);
         assertEquals("foo return", result);
 
-        verifyZeroInteractions(sessionFactory);
-        verifyZeroInteractions(session);
-        verifyZeroInteractions(transaction);
+        verifyNoInteractions(sessionFactory);
+        verifyNoInteractions(session);
+        verifyNoInteractions(transaction);
     }
 
     @Test
@@ -130,8 +96,7 @@ public class UnitOfWorkInvokerFactoryTest {
 
         try {
             invoker.invoke(exchange, null);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             assertEquals("Uh oh", e.getMessage());
         }
 
@@ -139,5 +104,40 @@ public class UnitOfWorkInvokerFactoryTest {
         verify(transaction, times(0)).commit();
         verify(transaction, times(1)).rollback();
         verify(session, times(1)).close();
+    }
+
+    class FooService {
+        public String foo() {
+            return "foo return";
+        }
+
+        @UnitOfWork
+        public String unitOfWork(boolean throwException) {
+            if (throwException)
+                throw new RuntimeException("Uh oh");
+            else
+                return "unitOfWork return";
+        }
+
+    }
+
+    public class FooInvoker implements Invoker {
+        @Override
+        public Object invoke(Exchange exchange, Object o) {
+            return fooService.foo();
+        }
+    }
+
+    public class UnitOfWorkInvoker implements Invoker {
+        private boolean doThrow = false;
+
+        public UnitOfWorkInvoker(boolean doThrow) {
+            this.doThrow = doThrow;
+        }
+
+        @Override
+        public Object invoke(Exchange exchange, Object o) {
+            return fooService.unitOfWork(doThrow);
+        }
     }
 }

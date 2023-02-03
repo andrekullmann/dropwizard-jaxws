@@ -1,10 +1,9 @@
 package com.roskart.dropwizard.jaxws;
 
 import com.google.common.collect.ImmutableList;
+import jakarta.xml.ws.handler.Handler;
 import org.apache.cxf.interceptor.Interceptor;
 import org.apache.cxf.message.Message;
-
-import javax.xml.ws.handler.Handler;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

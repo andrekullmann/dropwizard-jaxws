@@ -1,12 +1,19 @@
 package com.roskart.dropwizard.jaxws;
 
-import io.dropwizard.ConfiguredBundle;
-import io.dropwizard.setup.Bootstrap;
-import io.dropwizard.setup.Environment;
+import io.dropwizard.core.ConfiguredBundle;
+import io.dropwizard.core.setup.Bootstrap;
+import io.dropwizard.core.setup.Environment;
+import io.dropwizard.jetty.MutableServletContextHandler;
+import jakarta.servlet.Servlet;
+import jakarta.xml.ws.Endpoint;
+import jakarta.xml.ws.handler.Handler;
+import org.apache.cxf.common.util.ReflectionUtil;
+import org.eclipse.jetty.servlet.ServletHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.hibernate.SessionFactory;
 
-import javax.xml.ws.Endpoint;
-import javax.xml.ws.handler.Handler;
+import java.lang.reflect.Field;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -29,6 +36,7 @@ public class JAXWSBundle<C> implements ConfiguredBundle<C> {
 
     /**
      * Initialize JAXWSEnvironment. Service endpoints are published relative to the provided servletPath.
+     *
      * @param servletPath Root path for service endpoints. Leading slash is required.
      */
     public JAXWSBundle(String servletPath) {
@@ -37,7 +45,8 @@ public class JAXWSBundle<C> implements ConfiguredBundle<C> {
 
     /**
      * Use provided JAXWSEnvironment. Service endpoints are published relative to the provided servletPath.
-     * @param servletPath Root path for service endpoints. Leading slash is required.
+     *
+     * @param servletPath      Root path for service endpoints. Leading slash is required.
      * @param jaxwsEnvironment Valid JAXWSEnvironment.
      */
     public JAXWSBundle(String servletPath, JAXWSEnvironment jaxwsEnvironment) {
@@ -66,31 +75,74 @@ public class JAXWSBundle<C> implements ConfiguredBundle<C> {
         environment.servlets().addServlet("CXF Servlet " + jaxwsEnvironment.getDefaultPath(),
                 jaxwsEnvironment.buildServlet()).addMapping(servletPath);
 
+//        addServlet(environment, "CXF Servlet " + jaxwsEnvironment.getDefaultPath(),
+//                jaxwsEnvironment.buildServlet());
+
         environment.lifecycle().addServerLifecycleListener(
                 server -> jaxwsEnvironment.logEndpoints());
 
         String publishedEndpointUrlPrefix = getPublishedEndpointUrlPrefix(configuration);
-        if(publishedEndpointUrlPrefix != null) {
+        if (publishedEndpointUrlPrefix != null) {
             jaxwsEnvironment.setPublishedEndpointUrlPrefix(publishedEndpointUrlPrefix);
         }
     }
 
+    /*
+    private ServletHandler getServletHandler(Environment environment) {
+        try {
+            Field field = ReflectionUtil.getDeclaredField(environment.getClass(), "handler");
+            field.setAccessible(true);
+            MutableServletContextHandler handler = (MutableServletContextHandler) field.get(environment);
+            return handler.getServletHandler();
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Set<String> getServletNames(Environment environment) {
+        try {
+            Field field = ReflectionUtil.getDeclaredField(environment.getClass(), "servlets");
+            field.setAccessible(true);
+            Set<String> list = (Set<String>) field.get(environment);
+            return list;
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void checkDuplicateRegistration(Environment environment, String name, String type) {
+        Set<String> items = getServletNames(environment);
+        if (!items.add(name)) {
+            // LOG.warn("Overriding the existing {} registered with the name: {}", type, name);
+        }
+    }
+
+    public void addServlet(Environment environment, String name, Servlet servlet) {
+        ServletHolder holder = new ServletHolder(name, servlet);
+        ServletHandler servletHandler = getServletHandler(environment);
+        servletHandler.addServlet(holder);
+        // ServletRegistration.Dynamic registration = holder.getRegistration();
+        checkDuplicateRegistration(environment, name, "servlet");
+    }
+    */
+
     /**
      * Publish JAX-WS endpoint. Endpoint will be published relative to the CXF servlet path.
+     *
      * @param endpointBuilder EndpointBuilder.
      * @return javax.xml.ws.Endpoint
      */
-     public Endpoint publishEndpoint(EndpointBuilder endpointBuilder) {
+    public Endpoint publishEndpoint(EndpointBuilder endpointBuilder) {
         checkArgument(endpointBuilder != null, "EndpointBuilder is null");
         return this.jaxwsEnvironment.publishEndpoint(endpointBuilder);
     }
 
     /**
      * Publish JAX-WS endpoint. Endpoint is published relative to the CXF servlet path.
-     * @param path Relative endpoint path.
+     *
+     * @param path    Relative endpoint path.
      * @param service Service implementation.
      * @return javax.xml.ws.Endpoint
-     *
      * @deprecated Use the {@link #publishEndpoint(EndpointBuilder)} publishEndpoint} method instead.
      */
     public Endpoint publishEndpoint(String path, Object service) {
@@ -100,11 +152,11 @@ public class JAXWSBundle<C> implements ConfiguredBundle<C> {
     /**
      * Publish JAX-WS endpoint with Dropwizard Hibernate Bundle integration. Service is scanned for @UnitOfWork
      * annotations. EndpointBuilder is published relative to the CXF servlet path.
-     * @param path Relative endpoint path.
-     * @param service Service implementation.
+     *
+     * @param path           Relative endpoint path.
+     * @param service        Service implementation.
      * @param sessionFactory Hibernate session factory.
      * @return javax.xml.ws.Endpoint
-     *
      * @deprecated Use the {@link #publishEndpoint(EndpointBuilder)} publishEndpoint} method instead.
      */
     public Endpoint publishEndpoint(String path, Object service, SessionFactory sessionFactory) {
@@ -114,11 +166,11 @@ public class JAXWSBundle<C> implements ConfiguredBundle<C> {
     /**
      * Publish JAX-WS protected endpoint using Dropwizard BasicAuthentication. EndpointBuilder is published relative
      * to the CXF servlet path.
-     * @param path Relative endpoint path.
-     * @param service Service implementation.
+     *
+     * @param path           Relative endpoint path.
+     * @param service        Service implementation.
      * @param authentication BasicAuthentication implementation.
      * @return javax.xml.ws.Endpoint
-     *
      * @deprecated Use the {@link #publishEndpoint(EndpointBuilder)} publishEndpoint} method instead.
      */
     public Endpoint publishEndpoint(String path, Object service, BasicAuthentication authentication) {
@@ -129,16 +181,16 @@ public class JAXWSBundle<C> implements ConfiguredBundle<C> {
      * Publish JAX-WS protected endpoint using Dropwizard BasicAuthentication with Dropwizard Hibernate Bundle
      * integration. Service is scanned for @UnitOfWork annotations. EndpointBuilder is published relative to the CXF
      * servlet path.
-     * @param path Relative endpoint path.
-     * @param service Service implementation.
-     * @param auth BasicAuthentication implementation.
+     *
+     * @param path           Relative endpoint path.
+     * @param service        Service implementation.
+     * @param auth           BasicAuthentication implementation.
      * @param sessionFactory Hibernate session factory.
      * @return javax.xml.ws.Endpoint
-     *
      * @deprecated Use the {@link #publishEndpoint(EndpointBuilder)} publishEndpoint} method instead.
      */
     public Endpoint publishEndpoint(String path, Object service, BasicAuthentication auth,
-                                SessionFactory sessionFactory) {
+                                    SessionFactory sessionFactory) {
         checkArgument(service != null, "Service is null");
         checkArgument(path != null, "Path is null");
         checkArgument((path).trim().length() > 0, "Path is empty");
@@ -150,16 +202,16 @@ public class JAXWSBundle<C> implements ConfiguredBundle<C> {
 
     /**
      * Factory method for creating JAX-WS clients.
-     * @param serviceClass Service interface class.
-     * @param address Endpoint URL address.
-     * @param handlers Client side JAX-WS handlers. Optional.
-     * @param <T> Service interface type.
-     * @return JAX-WS client proxy.
      *
+     * @param serviceClass Service interface class.
+     * @param address      Endpoint URL address.
+     * @param handlers     Client side JAX-WS handlers. Optional.
+     * @param <T>          Service interface type.
+     * @return JAX-WS client proxy.
      * @deprecated Use the {@link #getClient(ClientBuilder)} getClient} method instead.
      */
     @Deprecated
-    public <T> T getClient(Class<T> serviceClass, String address, Handler...handlers) {
+    public <T> T getClient(Class<T> serviceClass, String address, Handler... handlers) {
         checkArgument(serviceClass != null, "ServiceClass is null");
         checkArgument(address != null, "Address is null");
         checkArgument((address).trim().length() > 0, "Address is empty");
@@ -169,8 +221,9 @@ public class JAXWSBundle<C> implements ConfiguredBundle<C> {
 
     /**
      * Factory method for creating JAX-WS clients.
+     *
      * @param clientBuilder ClientBuilder.
-     * @param <T> Service interface type.
+     * @param <T>           Service interface type.
      * @return Client proxy.
      */
     public <T> T getClient(ClientBuilder<T> clientBuilder) {
@@ -181,7 +234,7 @@ public class JAXWSBundle<C> implements ConfiguredBundle<C> {
     /**
      * Extract the published endpoint URL prefix from the application configuration and return it to use the returned
      * value as the location of services in the published WSDLs.
-     *
+     * <p>
      * Override this method to configure the bundle.
      *
      * @param configuration Application configuration.

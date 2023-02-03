@@ -27,15 +27,15 @@ import org.junit.Test;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 
-import javax.jws.WebMethod;
-import javax.jws.WebService;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.util.ByteArrayDataSource;
+import jakarta.jws.WebMethod;
+import jakarta.jws.WebService;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.util.ByteArrayDataSource;
 import javax.wsdl.WSDLException;
-import javax.xml.ws.BindingProvider;
-import javax.xml.ws.Endpoint;
-import javax.xml.ws.handler.Handler;
-import javax.xml.ws.soap.SOAPBinding;
+import jakarta.xml.ws.BindingProvider;
+import jakarta.xml.ws.Endpoint;
+import jakarta.xml.ws.handler.Handler;
+import jakarta.xml.ws.soap.SOAPBinding;
 
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
@@ -47,6 +47,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class JAXWSEnvironmentTest {
 
@@ -138,7 +139,7 @@ public class JAXWSEnvironmentTest {
         assertThat(e, is(notNullValue()));
 
         verify(mockInvokerBuilder).create(any(), any(Invoker.class));
-        verifyZeroInteractions(mockUnitOfWorkInvokerBuilder);
+        verifyNoInteractions(mockUnitOfWorkInvokerBuilder);
 
         Node soapResponse = testutils.invoke("local://path",
                 LocalTransportFactory.TRANSPORT_ID, soapRequest);
@@ -161,7 +162,7 @@ public class JAXWSEnvironmentTest {
         anotherJaxwsEnvironment.publishEndpoint(new EndpointBuilder("local://path", service));
 
         verify(mockInvokerBuilder).create(any(), any(Invoker.class));
-        verifyZeroInteractions(mockUnitOfWorkInvokerBuilder);
+        verifyNoInteractions(mockUnitOfWorkInvokerBuilder);
 
         Node soapResponse = testutils.invoke("local://path",
                 LocalTransportFactory.TRANSPORT_ID, soapRequest);
@@ -179,7 +180,7 @@ public class JAXWSEnvironmentTest {
                     .authentication(mock(BasicAuthentication.class)));
 
         verify(mockInvokerBuilder).create(any(), any(Invoker.class));
-        verifyZeroInteractions(mockUnitOfWorkInvokerBuilder);
+        verifyNoInteractions(mockUnitOfWorkInvokerBuilder);
 
         Node soapResponse = testutils.invoke("local://path",
                 LocalTransportFactory.TRANSPORT_ID, soapRequest);
@@ -274,7 +275,7 @@ public class JAXWSEnvironmentTest {
         );
 
         verify(mockInvokerBuilder).create(any(), any(Invoker.class));
-        verifyZeroInteractions(mockUnitOfWorkInvokerBuilder);
+        verifyNoInteractions(mockUnitOfWorkInvokerBuilder);
 
         Server server = testutils.getServerForAddress("local://path");
         AbstractDestination destination = (AbstractDestination) server.getDestination();
@@ -297,7 +298,7 @@ public class JAXWSEnvironmentTest {
         assertThat(e.getProperties().get("key"), equalTo("value"));
 
         verify(mockInvokerBuilder).create(any(), any(Invoker.class));
-        verifyZeroInteractions(mockUnitOfWorkInvokerBuilder);
+        verifyNoInteractions(mockUnitOfWorkInvokerBuilder);
 
         Node soapResponse = testutils.invoke("local://path",
                 LocalTransportFactory.TRANSPORT_ID, soapRequest);
@@ -317,7 +318,7 @@ public class JAXWSEnvironmentTest {
         );
 
         verify(mockInvokerBuilder).create(any(), any(Invoker.class));
-        verifyZeroInteractions(mockUnitOfWorkInvokerBuilder);
+        verifyNoInteractions(mockUnitOfWorkInvokerBuilder);
 
         Server server = testutils.getServerForAddress("/path");
         AbstractDestination destination = (AbstractDestination) server.getDestination();

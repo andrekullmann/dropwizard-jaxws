@@ -2,6 +2,12 @@ package com.roskart.dropwizard.jaxws;
 
 import io.dropwizard.validation.Validated;
 import io.dropwizard.validation.ValidationMethod;
+import jakarta.validation.Valid;
+import jakarta.validation.Validation;
+import jakarta.validation.ValidationException;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.xml.ws.AsyncHandler;
+import jakarta.xml.ws.Response;
 import org.apache.cxf.annotations.UseAsyncMethod;
 import org.apache.cxf.message.Exchange;
 import org.apache.cxf.message.Message;
@@ -11,13 +17,6 @@ import org.apache.cxf.service.model.OperationInfo;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.validation.Validation;
-import javax.validation.Valid;
-import javax.validation.ValidationException;
-import javax.validation.constraints.NotEmpty;
-import javax.xml.ws.AsyncHandler;
-import javax.xml.ws.Response;
-
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
@@ -25,7 +24,6 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 
@@ -34,50 +32,6 @@ public class ValidatingInvokerTest {
     ValidatingInvoker invoker;
     Invoker underlying;
     Exchange exchange;
-
-    class ChildParam {
-        @NotEmpty
-        private String foo;
-        public ChildParam(String foo) {
-            this.foo = foo;
-        }
-        @ValidationMethod(message="foo may not be 'John'")
-        public boolean isNotJohn() {
-            return !("John".equals(foo));
-        }
-    }
-
-    class RootParam1 {
-        @Valid
-        private ChildParam child;
-        public RootParam1(ChildParam childParam) {
-            this.child = childParam;
-        }
-    }
-
-    class RootParam2 {
-        @NotEmpty
-        private String foo;
-        public RootParam2(String foo) {
-            this.foo = foo;
-        }
-    }
-
-    class DummyService {
-        public void noParams() {
-        }
-        public void noValidation(RootParam1 rootParam1, RootParam2 rootParam2) {
-        }
-        public void withValidation(@Valid RootParam1 rootParam1, @Valid RootParam2 rootParam2) {
-        }
-        public void withDropwizardValidation(@Validated() String foo) {
-        }
-        @UseAsyncMethod
-        public void asyncMethod(String foo) {
-        }
-        public void asyncMethodAsync(String foo, AsyncHandler asyncHandler) {
-        }
-    }
 
     @Before
     public void setup() {
@@ -100,8 +54,7 @@ public class ValidatingInvokerTest {
             OperationInfo oi = exchange.getBindingOperationInfo().getOperationInfo();
             when(oi.getProperty(Method.class.getName()))
                     .thenReturn(DummyService.class.getMethod(methodName, parameterTypes));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             fail("setTargetMethod failed: " + e.getClass().getName() + ": " + e.getMessage());
         }
     }
@@ -130,7 +83,7 @@ public class ValidatingInvokerTest {
     public void invokeWithAsycHandler() {
         setTargetMethod(exchange, "asyncMethod", String.class);
 
-        List<Object> params = Arrays.<Object>asList(null, new AsyncHandler(){
+        List<Object> params = Arrays.<Object>asList(null, new AsyncHandler() {
             @Override
             public void handleResponse(Response res) {
 
@@ -139,7 +92,7 @@ public class ValidatingInvokerTest {
         invoker.invoke(exchange, params);
         verify(underlying).invoke(exchange, params);
 
-        params = Arrays.asList("foo", new AsyncHandler(){
+        params = Arrays.asList("foo", new AsyncHandler() {
             @Override
             public void handleResponse(Response res) {
 
@@ -159,8 +112,7 @@ public class ValidatingInvokerTest {
         try {
             invoker.invoke(exchange, params);
             fail();
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             assertThat(e, is(instanceOf(ValidationException.class)));
         }
 
@@ -168,8 +120,7 @@ public class ValidatingInvokerTest {
         try {
             invoker.invoke(exchange, params);
             fail();
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             assertThat(e, is(instanceOf(ValidationException.class)));
         }
 
@@ -177,8 +128,7 @@ public class ValidatingInvokerTest {
         try {
             invoker.invoke(exchange, params);
             fail();
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             assertThat(e, is(instanceOf(ValidationException.class)));
         }
 
@@ -188,5 +138,58 @@ public class ValidatingInvokerTest {
         invoker.invoke(exchange, params);
 
         verify(underlying).invoke(exchange, params);
+    }
+
+    class ChildParam {
+        @NotEmpty
+        private String foo;
+
+        public ChildParam(String foo) {
+            this.foo = foo;
+        }
+
+        @ValidationMethod(message = "foo may not be 'John'")
+        public boolean isNotJohn() {
+            return !("John".equals(foo));
+        }
+    }
+
+    class RootParam1 {
+        @Valid
+        private ChildParam child;
+
+        public RootParam1(ChildParam childParam) {
+            this.child = childParam;
+        }
+    }
+
+    class RootParam2 {
+        @NotEmpty
+        private String foo;
+
+        public RootParam2(String foo) {
+            this.foo = foo;
+        }
+    }
+
+    class DummyService {
+        public void noParams() {
+        }
+
+        public void noValidation(RootParam1 rootParam1, RootParam2 rootParam2) {
+        }
+
+        public void withValidation(@Valid RootParam1 rootParam1, @Valid RootParam2 rootParam2) {
+        }
+
+        public void withDropwizardValidation(@Validated() String foo) {
+        }
+
+        @UseAsyncMethod
+        public void asyncMethod(String foo) {
+        }
+
+        public void asyncMethodAsync(String foo, AsyncHandler asyncHandler) {
+        }
     }
 }

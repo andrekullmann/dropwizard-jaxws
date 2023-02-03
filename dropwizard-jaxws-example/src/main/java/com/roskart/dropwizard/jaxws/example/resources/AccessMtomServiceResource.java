@@ -1,18 +1,19 @@
 package com.roskart.dropwizard.jaxws.example.resources;
 
 import com.codahale.metrics.annotation.Timed;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 import org.apache.cxf.helpers.IOUtils;
 import ws.example.jaxws.dropwizard.roskart.com.mtomservice.Hello;
 import ws.example.jaxws.dropwizard.roskart.com.mtomservice.HelloResponse;
 import ws.example.jaxws.dropwizard.roskart.com.mtomservice.MtomService;
 import ws.example.jaxws.dropwizard.roskart.com.mtomservice.ObjectFactory;
 
-import javax.activation.DataHandler;
-import javax.mail.util.ByteArrayDataSource;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import jakarta.activation.DataHandler;
+import jakarta.mail.util.ByteArrayDataSource;
+
 import java.io.IOException;
 
 @Path("/mtomclient")
