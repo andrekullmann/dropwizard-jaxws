@@ -22,8 +22,6 @@
     </modules>
 
     <properties>
-        <dropwizard.version>4.0.3</dropwizard.version>
-
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
