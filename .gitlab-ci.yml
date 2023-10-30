@@ -37,6 +37,7 @@ stages:
   before_script:
     - export UPDATE_BRANCH="VERSION_UPDATE_$(date +%m-%d-%Y)"
     - export COMMIT_MESSAGE="Version Update $(date +%m-%d-%Y)"
+    - apk add git
     - git config --global user.email "${GITLAB_USER_EMAIL}"
     - git config --global user.name "${GITLAB_USER_NAME}"
   script:
