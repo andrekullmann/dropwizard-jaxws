@@ -43,6 +43,8 @@ stages:
   script:
     - git checkout -b "$UPDATE_BRANCH" $CI_COMMIT_SHA
     - mvn versions:update-properties
+    - mvn -f dropwizard-jaxws/pom.xml versions:update-properties
+    - mvn -f dropwizard-jaxws-example/pom.xml versions:update-properties
     - |-
       if [ "$(git status --porcelain pom.xml | wc -l)" -gt "0" ]; then
         git commit --message "${COMMIT_MESSAGE}" pom.xml
