@@ -26,7 +26,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <dropwizard.version>4.0.1</dropwizard.version>
+        <dropwizard.version>4.0.3</dropwizard.version>
         <cxf.version>4.0.2</cxf.version>
         <jakarta.xml.ws-api.version>4.0.0</jakarta.xml.ws-api.version>
         <jakarta.servlet-api.version>6.0.0</jakarta.servlet-api.version>
