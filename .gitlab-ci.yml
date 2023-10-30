@@ -46,7 +46,7 @@ stages:
     - mvn -f dropwizard-jaxws/pom.xml versions:update-properties
     - mvn -f dropwizard-jaxws-example/pom.xml versions:update-properties
     - |-
-      if [ "$(git status --porcelain pom.xml | wc -l)" -gt "0" ]; then
+      if [ "$( git status --porcelain | awk 'match($1, \"M\"){print $2}' | grep \"pom.xml$\" | wc -l)" -gt "0" ]; then
         git commit --message "${COMMIT_MESSAGE}" pom.xml dropwizard-jaxws/pom.xml dropwizard-jaxws-example/pom.xml
         git push   --push-option merge_request.create \
                    --push-option merge_request.target=${CI_DEFAULT_BRANCH} \
