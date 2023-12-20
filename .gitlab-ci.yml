@@ -28,8 +28,6 @@ stages:
   stage: Build
   script:
     - mvn ${MAVEN_CLI_OPTS} -s .m2/gitlab-ci_settings.xml deploy -DskipTests
-  tags:
-    - power-runner
 
 "Update Dependencies":
   image: maven:3-eclipse-temurin-21-alpine
