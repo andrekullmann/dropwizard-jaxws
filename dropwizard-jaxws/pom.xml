@@ -124,9 +124,21 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>versions-maven-plugin</artifactId>
-                <version>2.0</version>
+                <version>2.16.2</version>
                 <configuration>
-                    <rulesUri>file://${maven.multiModuleProjectDirectory}/version-rules.xml</rulesUri>
+                    <ruleSet>
+                        <rules>
+                            <rule>
+                                <groupId>io.dropwizard</groupId>
+                                <ignoreVersions>
+                                    <ignoreVersion>
+                                        <type>regex</type>
+                                        <version>5.*</version>
+                                    </ignoreVersion>
+                                </ignoreVersions>
+                            </rule>
+                        </rules>
+                    </ruleSet>
                 </configuration>
             </plugin>
         </plugins>
