@@ -187,7 +187,9 @@
                                         <type>regex</type>
                                         <version>4\.[1-9].*|[5-9].*</version>
                                     </ignoreVersion>
-                                    <ignoreVersion>4.0.6</ignoreVersion>
+                                    <ignoreVersion>
+                                        <version>4.0.6</version>
+                                    </ignoreVersion>
                                 </ignoreVersions>
                             </rule>
                             <rule>
