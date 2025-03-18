@@ -13,7 +13,7 @@
     <name>Dropwizard JAX-WS Bundle</name>
 
     <properties>
-        <cxf.version>4.0.7</cxf.version>
+        <cxf.version>4.0.5</cxf.version>
         <jakarta.xml.ws-api.version>4.0.2</jakarta.xml.ws-api.version>
         <jakarta.servlet-api.version>6.1.0</jakarta.servlet-api.version>
         <jakarta.mail.version>2.0.1</jakarta.mail.version>
@@ -133,10 +133,7 @@
                                 <ignoreVersions>
                                     <ignoreVersion>
                                         <type>regex</type>
-                                        <version>4\.[1-9].*|[5-9].*</version>
-                                    </ignoreVersion>
-                                    <ignoreVersion>
-                                        <version>4.0.*</version>
+                                        <version>^(?!4\.0\.5$).*$</version>
                                     </ignoreVersion>
                                 </ignoreVersions>
                             </rule>
