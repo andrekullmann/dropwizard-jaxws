@@ -15,7 +15,7 @@
     <properties>
         <cxf.version>4.0.5</cxf.version>
         <jakarta.xml.ws-api.version>4.0.2</jakarta.xml.ws-api.version>
-        <jakarta.servlet-api.version>6.2.0-M1</jakarta.servlet-api.version>
+        <jakarta.servlet-api.version>6.1.0</jakarta.servlet-api.version>
         <jakarta.mail.version>2.0.2</jakarta.mail.version>
     </properties>
 
@@ -143,6 +143,15 @@
                                     <ignoreVersion>
                                         <type>regex</type>
                                         <version>5.*</version>
+                                    </ignoreVersion>
+                                </ignoreVersions>
+                            </rule>
+                            <rule>
+                                <groupId>jakarta.servlet</groupId>
+                                <ignoreVersions>
+                                    <ignoreVersion>
+                                        <type>regex</type>
+                                        <version>6.2.*-M*</version>
                                     </ignoreVersion>
                                 </ignoreVersions>
                             </rule>
