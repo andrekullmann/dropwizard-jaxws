@@ -206,6 +206,15 @@
                                     </ignoreVersion>
                                 </ignoreVersions>
                             </rule>
+                            <rule>
+                                <groupId>jakarta.servlet</groupId>
+                                <ignoreVersions>
+                                    <ignoreVersion>
+                                        <type>regex</type>
+                                        <version>6.2*</version>
+                                    </ignoreVersion>
+                                </ignoreVersions>
+                            </rule>
                         </rules>
                     </ruleSet>
                 </configuration>
