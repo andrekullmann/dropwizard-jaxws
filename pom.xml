@@ -211,7 +211,7 @@
                                 <ignoreVersions>
                                     <ignoreVersion>
                                         <type>regex</type>
-                                        <version>6.2*</version>
+                                        <version>6\.2\.0-M1</version>
                                     </ignoreVersion>
                                 </ignoreVersions>
                             </rule>
