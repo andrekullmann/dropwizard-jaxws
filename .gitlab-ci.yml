@@ -35,10 +35,34 @@ stages:
   before_script:
     - export UPDATE_BRANCH="VERSION_UPDATE_$(date +%m-%d-%Y)"
     - export COMMIT_MESSAGE="Version Update $(date +%m-%d-%Y)"
-    - apk add git
+    - apk add git curl
     - git config --global user.email "${GITLAB_USER_EMAIL}"
     - git config --global user.name "${GITLAB_USER_NAME}"
   script:
+    - |
+      echo "=== Executing 4-day update cooldown check ==="
+      # Use Dropwizard BOM release time as the benchmark for stability
+      METADATA_URL="https://repo1.maven.org/maven2/io/dropwizard/dropwizard-bom/maven-metadata.xml"
+      # Extract lastUpdated value (yyyyMMddHHmmss) using sed
+      LAST_UPDATED=$(curl -s $METADATA_URL | sed -n 's/.*<lastUpdated>\(.*\)<\/lastUpdated>.*/\1/p' | head -n 1)
+      
+      if [ -z "$LAST_UPDATED" ]; then
+        echo "Could not retrieve metadata, skipping cooldown check."
+      else
+        # Convert format: 20240520123000 -> 2024-05-20 12:30:00
+        F_DATE="${LAST_UPDATED:0:4}-${LAST_UPDATED:4:2}-${LAST_UPDATED:6:2} ${LAST_UPDATED:8:2}:${LAST_UPDATED:10:2}:${LAST_UPDATED:12:2}"
+        LAST_SEC=$(date -d "$F_DATE" +%s)
+        NOW_SEC=$(date +%s)
+        DIFF_SEC=$((NOW_SEC - LAST_SEC))
+        COOLDOWN_SEC=345600 # 4 days = 4 * 24 * 3600
+        
+        echo "Latest release date: $F_DATE"
+        if [ $DIFF_SEC -lt $COOLDOWN_SEC ]; then
+          echo "Cooldown active: Latest release is less than 4 days old (current: $((DIFF_SEC / 86400)) days). Stopping update for stability."
+          exit 0
+        fi
+        echo "Check passed: Release is older than 4 days."
+      fi
     - git checkout -b "$UPDATE_BRANCH" $CI_COMMIT_SHA
     - mvn versions:update-properties
     - mvn -f dropwizard-jaxws/pom.xml versions:update-properties
