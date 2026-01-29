@@ -54,6 +54,7 @@ stages:
              awk 'NR%2{p=$0;next}{print p":"$0}')
       
       # 3. Merge, unique, and strip all whitespace/none
+      # Filter out project's own group ID (com.github.roskart) because internal modules don't need a cooldown.
       DEPS=$(echo -e "${DEPS_NORMAL}\n${BOMS}" | sort -u | grep -v "com.github.roskart" | grep -v "none" | grep ":" | tr -d '[:blank:]')
       
       STABLE_LIST=""
@@ -63,11 +64,11 @@ stages:
         G_PATH=$(echo $G_ID | tr '.' '/')
         URL="https://repo1.maven.org/maven2/$G_PATH/$A_ID/maven-metadata.xml"
         
-        # Checking existence using HTTP status code (Safe & Precise)
-        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+        # One-shot fetch: Get content and check success (HTTP 200) simultaneously
+        XML=$(curl -s -f "$URL")
         
-        if [ "$HTTP_STATUS" == "200" ]; then
-          LAST_UPDATED=$(curl -s "$URL" | sed -n 's/.*<lastUpdated>\(.*\)<\/lastUpdated>.*/\1/p' | head -n 1)
+        if [ $? -eq 0 ]; then
+          LAST_UPDATED=$(echo "$XML" | sed -n 's/.*<lastUpdated>\(.*\)<\/lastUpdated>.*/\1/p' | head -n 1)
           
           if [ ! -z "$LAST_UPDATED" ]; then
             F_DATE="${LAST_UPDATED:0:4}-${LAST_UPDATED:4:2}-${LAST_UPDATED:6:2} ${LAST_UPDATED:8:2}:${LAST_UPDATED:10:2}:${LAST_UPDATED:12:2}"
@@ -84,7 +85,7 @@ stages:
             fi
           fi
         else
-          echo "  [SKIP]  $DEP - Not found on Maven Central (HTTP $HTTP_STATUS)"
+          echo "  [SKIP]  $DEP - Not found on Maven Central or connection error"
         fi
       done
       
