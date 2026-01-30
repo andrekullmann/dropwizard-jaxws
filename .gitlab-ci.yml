@@ -35,14 +35,70 @@ stages:
   before_script:
     - export UPDATE_BRANCH="VERSION_UPDATE_$(date +%m-%d-%Y)"
     - export COMMIT_MESSAGE="Version Update $(date +%m-%d-%Y)"
-    - apk add git
+    - apk add git curl
     - git config --global user.email "${GITLAB_USER_EMAIL}"
     - git config --global user.name "${GITLAB_USER_NAME}"
   script:
+    - |
+      echo "=== Starting Comprehensive 4-Day Stability Check ==="
+      COOLDOWN_SEC=345600 # 4 Days
+      
+      echo "Scanning modules for dependencies and BOMs..."
+      # 1. Capture normal dependencies
+      DEPS_NORMAL=$(mvn dependency:list -DexcludeTransitive=true | grep "^\[INFO\]    " | awk '{print $2}' | cut -d: -f1,2)
+      
+      # 2. Capture BOMs (Use portable AWK logic)
+      BOMS=$(find . -name "pom.xml" -exec grep -h -B 10 "<scope>import</scope>" {} + | \
+             grep -E "<groupId>|<artifactId>" | \
+             sed 's/[[:space:]]*<[^>]*>//g' | \
+             awk 'NR%2{p=$0;next}{print p":"$0}')
+      
+      # 3. Merge, unique, and strip all whitespace/none
+      # Filter out project's own group ID (com.github.roskart) because internal modules don't need a cooldown.
+      DEPS=$(echo -e "${DEPS_NORMAL}\n${BOMS}" | sort -u | grep -v "com.github.roskart" | grep -v "none" | grep ":" | tr -d '[:blank:]')
+      
+      STABLE_LIST=""
+      for DEP in $DEPS; do
+        G_ID=$(echo $DEP | cut -d: -f1)
+        A_ID=$(echo $DEP | cut -d: -f2)
+        G_PATH=$(echo $G_ID | tr '.' '/')
+        URL="https://repo1.maven.org/maven2/$G_PATH/$A_ID/maven-metadata.xml"
+        
+        # One-shot fetch: Get content and check success (HTTP 200) simultaneously
+        XML=$(curl -s -f "$URL")
+        
+        if [ $? -eq 0 ]; then
+          LAST_UPDATED=$(echo "$XML" | sed -n 's/.*<lastUpdated>\(.*\)<\/lastUpdated>.*/\1/p' | head -n 1)
+          
+          if [ ! -z "$LAST_UPDATED" ]; then
+            F_DATE="${LAST_UPDATED:0:4}-${LAST_UPDATED:4:2}-${LAST_UPDATED:6:2} ${LAST_UPDATED:8:2}:${LAST_UPDATED:10:2}:${LAST_UPDATED:12:2}"
+            LAST_SEC=$(date -d "$F_DATE" +%s)
+            NOW_SEC=$(date +%s)
+            DIFF_SEC=$((NOW_SEC - LAST_SEC))
+            DAYS=$((DIFF_SEC / 86400))
+            
+            if [ $DIFF_SEC -lt $COOLDOWN_SEC ]; then
+              echo "  [SKIP]  $DEP - Released only $DAYS day(s) ago ($F_DATE)"
+            else
+              echo "  [OK]    $DEP - Stable ($DAYS days old)"
+              STABLE_LIST="${STABLE_LIST}${DEP},"
+            fi
+          fi
+        else
+          echo "  [SKIP]  $DEP - Not found on Maven Central or connection error"
+        fi
+      done
+      
+      STABLE_LIST=${STABLE_LIST%,}
+      if [ -z "$STABLE_LIST" ]; then
+        echo "=== Result: NO STABLE UPDATES FOUND. ==="
+        exit 0
+      fi
+      echo "=== Result: Proceeding with update for stable packages only. ==="
     - git checkout -b "$UPDATE_BRANCH" $CI_COMMIT_SHA
-    - mvn versions:update-properties
-    - mvn -f dropwizard-jaxws/pom.xml versions:update-properties
-    - mvn -f dropwizard-jaxws-example/pom.xml versions:update-properties
+    - mvn versions:update-properties -Dincludes="$STABLE_LIST"
+    - mvn -f dropwizard-jaxws/pom.xml versions:update-properties -Dincludes="$STABLE_LIST"
+    - mvn -f dropwizard-jaxws-example/pom.xml versions:update-properties -Dincludes="$STABLE_LIST"
     - |-
       if [ "$( git status --porcelain | awk 'match($1, 'M'){print $2}' | grep "pom.xml$" | wc -l)" -gt "0" ]; then
         git commit --message "${COMMIT_MESSAGE}" pom.xml dropwizard-jaxws/pom.xml dropwizard-jaxws-example/pom.xml
