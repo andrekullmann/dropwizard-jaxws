@@ -40,22 +40,30 @@ stages:
     - git config --global user.name "${GITLAB_USER_NAME}"
   script:
     - |
+      set -x  # Enable debug mode to see every command executed
       echo "=== Starting Comprehensive 4-Day Stability Check ==="
       COOLDOWN_SEC=345600 # 4 Days
       
       echo "Scanning modules for dependencies and BOMs..."
-      # 1. Capture normal dependencies
-      DEPS_NORMAL=$(mvn dependency:list -DexcludeTransitive=true | grep "^\[INFO\]    " | awk '{print $2}' | cut -d: -f1,2)
+      # 1. Capture normal dependencies (Add || true to prevent failure if search is empty)
+      DEPS_NORMAL=$(mvn dependency:list -DexcludeTransitive=true | grep "^\[INFO\]    " | awk '{print $2}' | cut -d: -f1,2 || true)
+      echo "Debug: Captured dependencies: $DEPS_NORMAL"
       
-      # 2. Capture BOMs (Use portable AWK logic)
+      # 2. Capture BOMs (Add || true to prevent failure if no BOMs found)
       BOMS=$(find . -name "pom.xml" -exec grep -h -B 10 "<scope>import</scope>" {} + | \
              grep -E "<groupId>|<artifactId>" | \
              sed 's/[[:space:]]*<[^>]*>//g' | \
-             awk 'NR%2{p=$0;next}{print p":"$0}')
+             awk 'NR%2{p=$0;next}{print p":"$0}' || true)
+      echo "Debug: Captured BOMs: $BOMS"
       
       # 3. Merge, unique, and strip all whitespace/none
       # Filter out project's own group ID (com.github.roskart) because internal modules don't need a cooldown.
-      DEPS=$(echo -e "${DEPS_NORMAL}\n${BOMS}" | sort -u | grep -v "com.github.roskart" | grep -v "none" | grep ":" | tr -d '[:blank:]')
+      DEPS=$(echo -e "${DEPS_NORMAL}\n${BOMS}" | sort -u | grep -v "com.github.roskart" | grep -v "none" | grep ":" | tr -d '[:blank:]' || true)
+      echo "Debug: Final list to check: $DEPS"
+      
+      if [ -z "$DEPS" ]; then
+        echo "Warning: No external dependencies found to check."
+      fi
       
       STABLE_LIST=""
       for DEP in $DEPS; do
