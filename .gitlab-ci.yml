@@ -43,11 +43,26 @@ stages:
       echo "=== Starting Comprehensive 4-Day Stability Check ==="
       COOLDOWN_SEC=345600 # 4 Days
       
-      echo "Scanning modules for dependencies and BOMs..."
-      # 1. Capture normal dependencies (Add || true to prevent failure if search is empty)
+      echo "Scanning modules for dependencies..."
+      # 1a. Capture normal dependencies via Maven (may miss modules with inter-module dependency resolution failures)
       DEPS_NORMAL=$(mvn ${MAVEN_CLI_OPTS} dependency:list -DexcludeTransitive=true | grep "\[INFO\]" | awk '$2 ~ /:/ {print $2}' | cut -d: -f1,2 || true)
       
+      # 1b. Also parse <dependency> blocks directly from all pom.xml files (fallback for modules missed by dependency:list)
+      echo "Scanning pom.xml files for direct dependencies..."
+      DEPS_POM=$(find . -name "pom.xml" -not -path "*/target/*" | while read -r POM; do
+          awk '
+            /<dependency>/ { in_dep=1; g=""; a="" }
+            in_dep && /<groupId>/ { gsub(/.*<groupId>|<\/groupId>.*/, "", $0); g=$0 }
+            in_dep && /<artifactId>/ { gsub(/.*<artifactId>|<\/artifactId>.*/, "", $0); a=$0 }
+            in_dep && /<\/dependency>/ { if (g && a) print g":"a; in_dep=0 }
+          ' "$POM"
+      done || true)
+      
+      # Merge dependency:list results with pom.xml-parsed results
+      DEPS_NORMAL=$(echo -e "${DEPS_NORMAL}\n${DEPS_POM}" | sort -u || true)
+      
       # 2. Capture BOMs (Add || true to prevent failure if no BOMs found)
+      echo "Scanning for BOMs..."
       BOMS=$(find . -name "pom.xml" -exec grep -h -B 10 "<scope>import</scope>" {} + | \
              grep -E "<groupId>|<artifactId>" | \
              sed 's/[[:space:]]*<[^>]*>//g' | \
